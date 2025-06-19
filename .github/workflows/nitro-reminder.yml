@@ -1,0 +1,37 @@
+name: 🛎️ Nitroリマインダー
+
+on:
+  schedule:
+    - cron: "0 1 * * *" # 10:00 JST = 01:00 UTC
+  workflow_dispatch: # Cho phép chạy thủ công để test
+
+jobs:
+  daily-nitro-reminder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔔 Discordでカウントダウン通知
+        run: |
+          # Ngày hôm nay (UTC)
+          TODAY=$(date -u +"%Y-%m-%d")
+
+          # Ngày đích
+          TARGET_DATE="2026-06-08"
+
+          # Tính số ngày còn lại
+          DAYS_LEFT=$(( ( $(date -d "$TARGET_DATE" +%s) - $(date -d "$TODAY" +%s) ) / 86400 ))
+
+          # ID người dùng để tag
+          USER_ID="400990876463136768"
+
+          # Nội dung tin nhắn (vui vẻ)
+          MESSAGE="<@${USER_ID}> さん、\nNitroをみんなに買ってくれる日まで、あと **${DAYS_LEFT}日** だよ！🎉\n準備はバッチリ？😎✨"
+
+          # Gửi đến Discord Webhook
+          curl -X POST -H "Content-Type: application/json" \
+            -d "{
+              \"content\": \"${MESSAGE}\",
+              \"allowed_mentions\": {
+                \"users\": [\"${USER_ID}\"]
+              }
+            }" \
+            ${{ secrets.DISCORD_WEBHOOK_URL }}
