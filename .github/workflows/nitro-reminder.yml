@@ -2,7 +2,7 @@ name: 🛎️ Nitroリマインダー
 
 on:
   schedule:
-    - cron: "*/5 * * * *" # 10:00 JST = 01:00 UTC
+    - cron: "0 1 * * *" # 10:00 JST = 01:00 UTC (chạy mỗi ngày lúc 10h sáng JST)
   workflow_dispatch: # Cho phép chạy thủ công để test
 
 jobs:
