@@ -2,64 +2,81 @@ name: 🛎️ Nitroリマインダー
 
 on:
   schedule:
-    - cron: "0 1 * * *" # 10:00 JST = 01:00 UTC (chạy mỗi ngày lúc 10h sáng JST)
-  workflow_dispatch: # Cho phép chạy thủ công để test
+    - cron: "0 1 * * *" # 10:00 JST = 01:00 UTC
+  workflow_dispatch:
 
 jobs:
   daily-nitro-reminder:
     runs-on: ubuntu-latest
     steps:
-      - name: 🔔 Discordでカウントダウン通知
+      - name: Install dependencies
         run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Generate and send Nitro reminder
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+
           # Ngày hôm nay (UTC)
-          TODAY=$(date -u +"%Y-%m-%d")
-
-          # Ngày đích
-          TARGET_DATE="2026-06-08"
-
-          # Tính số ngày còn lại
+          TODAY=$(date -u +'%Y-%m-%d')
+          TARGET_DATE='2026-06-08'
           DAYS_LEFT=$(( ( $(date -d "$TARGET_DATE" +%s) - $(date -d "$TODAY" +%s) ) / 86400 ))
 
-          # ID người dùng để tag
-          USER_ID="400990876463136768"
+          # Người dùng để tag
+          USER_ID='400990876463136768'
 
-          # Tạo prompt cho OpenAI
+          # Tạo prompt
           PROMPT="Tạo tin nhắn tiếng Nhật nhắc nhở mua Discord Nitro cho mọi người. Còn ${DAYS_LEFT} ngày. Message phải gọi tên trực tiếp người đó như anata, kimi, omae. Phong cách cute, hài hước, bẩn bựa, đòi nợ. Chỉ trả về nội dung tin nhắn, không cần mention. Dùng emoji."
 
-          # Dùng jq để tạo JSON an toàn
+          # Payload cho OpenAI
           JSON_PAYLOAD=$(jq -n \
-            --arg model "gpt-4o-mini" \
-            --arg content "$PROMPT" \
+            --arg model 'gpt-4o-mini' \
+            --arg prompt "$PROMPT" \
+            --argjson max_tokens 200 \
+            --argjson temperature 0.9 \
             '{
-              "model": $model,
-              "messages": [{"role": "user", "content": $content}],
-              "max_tokens": 200,
-              "temperature": 0.9
+              model: $model,
+              messages: [{ role: "user", content: $prompt }],
+              max_tokens: $max_tokens,
+              temperature: $temperature
             }')
 
-          # Gọi OpenAI API để tạo message
-          AI_RESPONSE=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
-            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+          # Gọi OpenAI API
+          AI_RESPONSE=$(curl -s -X POST https://api.openai.com/v1/chat/completions \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
             -H "Content-Type: application/json" \
             -d "$JSON_PAYLOAD")
 
-          # Extract message từ OpenAI response
-          AI_MESSAGE=$(echo "$AI_RESPONSE" | jq -r '.choices[0].message.content' 2>/dev/null || echo "")
+          # Bắt lỗi từ OpenAI
+          ERROR_MSG=$(echo "$AI_RESPONSE" | jq -r '.error.message // empty')
+          if [ -n "$ERROR_MSG" ]; then
+            echo "❌ OpenAI API Error: $ERROR_MSG"
+            exit 1
+          fi
 
-          # Fallback message nếu API lỗi
-          if [ -z "$AI_MESSAGE" ] || [ "$AI_MESSAGE" = "null" ]; then
+          # Lấy message
+          AI_MESSAGE=$(echo "$AI_RESPONSE" | jq -r '.choices[0].message.content // empty')
+          if [ -z "$AI_MESSAGE" ]; then
             AI_MESSAGE="Nitroをみんなに買ってくれる日まで、あと **${DAYS_LEFT}日** だよ！🎉 準備はバッチリ？😎✨"
           fi
 
-          # Kết hợp mention user với AI message
           FINAL_MESSAGE="<@${USER_ID}> さん、\n${AI_MESSAGE}"
 
-          # Gửi đến Discord Webhook
-          curl -X POST -H "Content-Type: application/json" \
-            -d "{
-              \"content\": \"${FINAL_MESSAGE}\",
-              \"allowed_mentions\": {
-                \"users\": [\"${USER_ID}\"]
-              }
-            }" \
-            ${{ secrets.DISCORD_WEBHOOK_URL }}
+          # Payload cho Discord
+          WEBHOOK_PAYLOAD=$(jq -n \
+            --arg content "$FINAL_MESSAGE" \
+            --arg user_id "$USER_ID" \
+            '{
+              content: $content,
+              allowed_mentions: { users: [$user_id] }
+            }')
+
+          # Gửi lên Discord
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$WEBHOOK_PAYLOAD"
