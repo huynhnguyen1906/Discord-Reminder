@@ -30,8 +30,16 @@ jobs:
           # Người dùng để tag
           USER_ID='400990876463136768'
 
-          # Tạo prompt
-          PROMPT="Tạo tin nhắn tiếng Nhật nhắc nhở mua Discord Nitro cho mọi người. Còn ${DAYS_LEFT} ngày. Message phải gọi tên trực tiếp người đó như anata, kimi, omae. Phong cách cute, hài hước, bẩn bựa, đòi nợ. Chỉ trả về nội dung tin nhắn, không cần mention. Dùng emoji."
+          # Danh sách phong cách để random
+          STYLES=("cute" "hài hước" "bẩn bựa" "khinh thường" "đòi nợ" "làm tình" "tsundere" "yandere" "formal" "casual")
+
+          # Random một phong cách
+          RANDOM_STYLE=${STYLES[$RANDOM % ${#STYLES[@]}]}
+
+          echo "🎲 Phong cách hôm nay: $RANDOM_STYLE"
+
+          # Tạo prompt với phong cách đã random
+          PROMPT="Tạo tin nhắn tiếng Nhật nhắc nhở mua Discord Nitro cho mọi người. Còn ${DAYS_LEFT} ngày. Message phải gọi tên trực tiếp người đó như anata, kimi, omae. Phong cách: ${RANDOM_STYLE}. Chỉ trả về nội dung tin nhắn, không cần mention. Dùng emoji phù hợp với phong cách."
 
           # Payload cho OpenAI
           JSON_PAYLOAD=$(jq -n \
