@@ -31,7 +31,7 @@ jobs:
           USER_ID='400990876463136768'
 
           # Danh sách phong cách để random
-          STYLES=("cute" "hài hước" "bẩn bựa" "khinh thường" "đòi nợ" "làm tình" "tsundere" "yandere" "formal" "casual")
+          STYLES=("hài hước" "bẩn bựa" "khinh thường" "đòi nợ")
 
           # Random một phong cách
           RANDOM_STYLE=${STYLES[$RANDOM % ${#STYLES[@]}]}
