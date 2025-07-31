@@ -23,8 +23,11 @@ jobs:
           # ID người dùng để tag
           USER_ID="400990876463136768"
 
-          # Tạo prompt cho OpenAI
-          PROMPT="Tạo một tin nhắn bằng tiếng Nhật để nhắc nhở/đòi nợ một người cụ thể mua Discord Nitro cho mọi người trong server. Còn ${DAYS_LEFT} ngày nữa đến ngày hứa hẹn. Message phải có tính chất gọi tên, nhắc nhở trực tiếp người đó (như 'あなた', 'きみ', 'お前'). Phong cách có thể cute, hài hước, bẩn bựa, đòi nợ, hoặc làm tình. Chỉ trả về nội dung tin nhắn, không cần @mention. Sử dụng emoji phù hợp."
+          # Tạo prompt cho OpenAI (escape characters cho JSON)
+          PROMPT="Tạo tin nhắn tiếng Nhật nhắc nhở mua Discord Nitro cho mọi người. Còn ${DAYS_LEFT} ngày. Message phải gọi tên trực tiếp người đó như あなた, きみ, お前. Phong cách cute, hài hước, bẩn bựa, đòi nợ. Chỉ trả về nội dung tin nhắn, không cần @mention. Dùng emoji."
+
+          # Escape prompt cho JSON
+          ESCAPED_PROMPT=$(echo "$PROMPT" | sed 's/"/\\"/g' | sed 's/\n/\\n/g')
 
           # Gọi OpenAI API để tạo message
           AI_RESPONSE=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
@@ -32,7 +35,7 @@ jobs:
             -H "Content-Type: application/json" \
             -d "{
               \"model\": \"gpt-4o-mini\",
-              \"messages\": [{\"role\": \"user\", \"content\": \"${PROMPT}\"}],
+              \"messages\": [{\"role\": \"user\", \"content\": \"${ESCAPED_PROMPT}\"}],
               \"max_tokens\": 200,
               \"temperature\": 0.9
             }")
