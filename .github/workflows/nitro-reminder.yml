@@ -65,7 +65,7 @@ jobs:
             AI_MESSAGE="Nitroをみんなに買ってくれる日まで、あと **${DAYS_LEFT}日** だよ！🎉 準備はバッチリ？😎✨"
           fi
 
-          FINAL_MESSAGE="<@${USER_ID}> さん、\n${AI_MESSAGE}"
+          FINAL_MESSAGE="<@${USER_ID}> ${AI_MESSAGE}"
 
           # Payload cho Discord
           WEBHOOK_PAYLOAD=$(jq -n \
